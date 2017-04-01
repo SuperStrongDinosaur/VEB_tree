@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cmath>
 #include "veb.h"
+#define ull unsigned long long
 
 using namespace std;
 
@@ -21,13 +22,11 @@ private:
     public:
         shared_ptr<node> aux;
         vector<shared_ptr<node>> children;
-        unsigned long long max = NO;
-        unsigned long long min = NO;
+        ull max = NO;
+        ull min = NO;
         
-        node(int size1) {
-            size = size1;
-            if (size < 3) {
-            } else {
+        node(int size1) : size(size1) {
+            if (size > 2) {
                 int child_size = pow(2, (int)((log2(size)) / 2 + 0.5));
                 aux = make_shared<node>(child_size);
                 children.resize(child_size);
@@ -41,31 +40,31 @@ private:
     int k;
     
 public:
-    VEBTree(int k) : k(k){
+    VEBTree() : k(S){
         root = make_shared<node>(pow(2, k));
     }
     
-    void add(unsigned long long x) {
+    void add(ull x) {
         add_rec(root, x);
     }
     
-    void remove(unsigned long long x) {
+    void remove(ull x) {
         remove_rec(root, x);
     }
     
-    unsigned long long next(unsigned long long x) const {
+    ull next(ull x) const {
         return next_rec(root, x);
     }
     
-    unsigned long long prev(unsigned long long x) const {
+    ull prev(ull x) const {
         return prev_rec(root, x);
     }
     
-    unsigned long long getMin() const {
+    ull getMin() const {
         return root->min;
     }
     
-    unsigned long long getMax() const {
+    ull getMax() const {
         return root->max;
     }
     
@@ -74,19 +73,19 @@ private:
         return t->min == NO;
     }
     
-    unsigned long long high(unsigned long long key) const {
+    ull high(ull key) const {
         return (key >> (k >> 1));
     }
     
-    unsigned long long low(unsigned long long key) const {
-        return (key & ((1L << (k >> 1)) - 1L));
-    }
-
-    unsigned long long merge(unsigned long long high, unsigned long long low) const {
-        return (high << (k >> 1)) + low;
+    ull low(ull key) const {
+        return (key & ((1ull << (k >> 1)) - 1));
     }
     
-    void add_rec(shared_ptr<node> t, unsigned long long x) {
+    ull merge(ull high, ull low) const {
+        return ((high << (k >> 1)) | low);
+    }
+    
+    void add_rec(shared_ptr<node> t, ull x) {
         if (empty(t))  {
             t->min = x;
             t->max = x;
@@ -108,13 +107,13 @@ private:
             }
         }
     }
- 
-    void remove_rec(shared_ptr<node> t, unsigned long long x) {
+    
+    void remove_rec(shared_ptr<node> t, ull x) {
         if (t->min == x && t->max == x)  {
             t->min = NO;
             return;
         }
-       if (t->min == x) {
+        if (t->min == x) {
             if (empty(t->aux)) {
                 t->min = t->max;
                 return;
@@ -137,7 +136,7 @@ private:
             remove_rec(t->aux, high(x));
     }
     
-    unsigned long long next_rec(shared_ptr<node> t, unsigned long long x) const {
+    ull next_rec(shared_ptr<node> t, ull x) const {
         if (empty(t) || t->max <= x)
             return NO;
         if (t->min > x)
@@ -148,7 +147,7 @@ private:
             if (!empty(t->children[high(x)]) && t->children[high(x)]->max > low(x))
                 return merge(high(x), next_rec(t->children[high(x)], low(x)));
             else  {
-                unsigned long long nextHigh = next_rec(t->aux, high(x));
+                ull nextHigh = next_rec(t->aux, high(x));
                 if (nextHigh == NO)
                     return t->max;
                 else
@@ -157,7 +156,7 @@ private:
         }
     }
     
-    unsigned long long prev_rec(shared_ptr<node> t, unsigned long long x) const {
+    ull prev_rec(shared_ptr<node> t, ull x) const {
         if (empty(t) || t->min >= x)
             return NO;
         if (t->max < x)
@@ -168,7 +167,7 @@ private:
             if (!empty(t->children[high(x)]) && t->children[high(x)]->min > low(x))
                 return merge(high(x), prev_rec(t->children[high(x)], low(x)));
             else  {
-                unsigned long long nextHigh = prev_rec(t->aux, high(x));
+                ull nextHigh = prev_rec(t->aux, high(x));
                 if (nextHigh == NO)
                     return t->min;
                 else
@@ -179,7 +178,21 @@ private:
 };
 
 int main() {
-    VEBTree<20> tree(9);
+    VEBTree<20> tree;
+    
+    for(int i = 1; i < 500; i++) {
+        tree.add(i);
+        std::cout << tree.getMax() << std::endl;
+    }
+    for(int i = 1; i < 500; i++) {
+        std::cout << tree.next(i) << std::endl;
+        std::cout << tree.prev(i) << std::endl;
+    }
+    for(int i = 1; i < 500; i++) {
+        tree.remove(i);
+        std::cout << tree.getMin() << std::endl;
+    }
+    
     tree.add(5);
     tree.add(11);
     tree.add(10);
