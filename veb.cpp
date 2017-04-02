@@ -20,8 +20,7 @@ private:
     public:
         std::shared_ptr<node> aux;
         std::vector<std::shared_ptr<node>> children;
-        ull max = NO;
-        ull min = NO;
+        ull max, min;
         
         node(int size1) : size(size1), max(NO), min(NO) {
             if (size > 2) {
@@ -48,6 +47,10 @@ public:
     
     void remove(ull x) {
         remove_rec(root, x);
+    }
+    
+    bool find(ull x) {
+        return find_rec(root, x);
     }
     
     ull next(ull x) const {
@@ -83,11 +86,19 @@ private:
         return ((high << (k >> 1)) | low);
     }
     
+    bool find_rec(std::shared_ptr<node> t, ull x) {
+        if (empty(t))
+            return false;
+        if (t->min == x || t->max == x)
+            return true;
+        return find_rec(t->children[high(x)], low(x));
+    }
+    
     void add_rec(std::shared_ptr<node> t, ull x) {
-        if (empty(t))  {
+        if (empty(t)) {
             t->min = x;
             t->max = x;
-        } else if (t->min == t->max)   {
+        } else if (t->min == t->max) {
             if (t->min < x)
                 t->max = x;
             else
@@ -180,14 +191,14 @@ int main() {
     
     for(int i = 1; i < 10; i++) {
         tree.add(i);
-        std::cout << "added: " << i << " max: " << tree.getMax() << std::endl;
+        std::cout << "added: " << i << " max: " << tree.getMax() << " is added: " << tree.find(i) <<std::endl;
     }
     for(int i = 1; i < 10; i++) {
-        std::cout  << i << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
+        std::cout << "is exist: " << tree.find(i) << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
     }
     for(int i = 1; i < 10; i++) {
         tree.remove(i);
-        std::cout << "removed: " << i << " min: " << tree.getMin() << std::endl;
+        std::cout << "removed: " << i << " min: " << tree.getMin() << " is removed: " << tree.find(i) << std::endl;
     }
     
     /* tree.add(5);
