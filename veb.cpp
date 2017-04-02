@@ -12,36 +12,34 @@
 #include "veb.h"
 #define ull unsigned long long
 
-using namespace std;
-
 template<unsigned int S>
 class VEBTree: AbstractVEBTree<S> {
 private:
     class node {
         int size;
     public:
-        shared_ptr<node> aux;
-        vector<shared_ptr<node>> children;
+        std::shared_ptr<node> aux;
+        std::vector<std::shared_ptr<node>> children;
         ull max = NO;
         ull min = NO;
         
-        node(int size1) : size(size1) {
+        node(int size1) : size(size1), max(NO), min(NO) {
             if (size > 2) {
                 int child_size = pow(2, (int)((log2(size)) / 2 + 0.5));
-                aux = make_shared<node>(child_size);
+                aux = std::make_shared<node>(child_size);
                 children.resize(child_size);
                 for(auto& i : children)
-                    i = make_shared<node>(child_size);
+                    i = std::make_shared<node>(child_size);
             }
         }
     };
     
-    shared_ptr<node> root;
+    std::shared_ptr<node> root;
     int k;
     
 public:
     VEBTree() : k(S){
-        root = make_shared<node>(pow(2, k));
+        root = std::make_shared<node>(pow(2, k));
     }
     
     void add(ull x) {
@@ -69,7 +67,7 @@ public:
     }
     
 private:
-    bool empty(shared_ptr<node> t) const {
+    bool empty(std::shared_ptr<node> t) const {
         return t->min == NO;
     }
     
@@ -85,7 +83,7 @@ private:
         return ((high << (k >> 1)) | low);
     }
     
-    void add_rec(shared_ptr<node> t, ull x) {
+    void add_rec(std::shared_ptr<node> t, ull x) {
         if (empty(t))  {
             t->min = x;
             t->max = x;
@@ -96,9 +94,9 @@ private:
                 t->min = x;
         } else {
             if (t->min > x)
-                swap(t->min, x);
+                std::swap(t->min, x);
             if (t->max < x)
-                swap(t->max, x);
+                std::swap(t->max, x);
             if (k != 1) {
                 if (empty(t->children[high(x)])) {
                     add_rec(t->aux, high(x));
@@ -108,7 +106,7 @@ private:
         }
     }
     
-    void remove_rec(shared_ptr<node> t, ull x) {
+    void remove_rec(std::shared_ptr<node> t, ull x) {
         if (t->min == x && t->max == x)  {
             t->min = NO;
             return;
@@ -136,7 +134,7 @@ private:
             remove_rec(t->aux, high(x));
     }
     
-    ull next_rec(shared_ptr<node> t, ull x) const {
+    ull next_rec(std::shared_ptr<node> t, ull x) const {
         if (empty(t) || t->max <= x)
             return NO;
         if (t->min > x)
@@ -144,9 +142,9 @@ private:
         if (empty(t->aux))
             return t->max;
         else {
-            if (!empty(t->children[high(x)]) && t->children[high(x)]->max > low(x))
+            if (!empty(t->children[high(x)]) && t->children[high(x)]->max > low(x)) {
                 return merge(high(x), next_rec(t->children[high(x)], low(x)));
-            else  {
+            } else {
                 ull nextHigh = next_rec(t->aux, high(x));
                 if (nextHigh == NO)
                     return t->max;
@@ -156,7 +154,7 @@ private:
         }
     }
     
-    ull prev_rec(shared_ptr<node> t, ull x) const {
+    ull prev_rec(std::shared_ptr<node> t, ull x) const {
         if (empty(t) || t->min >= x)
             return NO;
         if (t->max < x)
@@ -180,25 +178,24 @@ private:
 int main() {
     VEBTree<20> tree;
     
-    for(int i = 1; i < 500; i++) {
+    for(int i = 1; i < 10; i++) {
         tree.add(i);
-        std::cout << tree.getMax() << std::endl;
+        std::cout << "added: " << i << " max: " << tree.getMax() << std::endl;
     }
-    for(int i = 1; i < 500; i++) {
-        std::cout << tree.next(i) << std::endl;
-        std::cout << tree.prev(i) << std::endl;
+    for(int i = 1; i < 10; i++) {
+        std::cout  << i << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
     }
-    for(int i = 1; i < 500; i++) {
+    for(int i = 1; i < 10; i++) {
         tree.remove(i);
-        std::cout << tree.getMin() << std::endl;
+        std::cout << "removed: " << i << " min: " << tree.getMin() << std::endl;
     }
     
-    tree.add(5);
-    tree.add(11);
-    tree.add(10);
-    std::cout << tree.next(5) << std::endl;
-    std::cout << tree.prev(11) << std::endl;
-    tree.remove(10);
-    std::cout << tree.next(5) << std::endl;
+    /* tree.add(5);
+     tree.add(11);
+     tree.add(10);
+     std::cout << tree.next(5) << std::endl;
+     std::cout << tree.prev(11) << std::endl;
+     tree.remove(10);
+     std::cout << tree.next(5) << std::endl;*/
     return 0;
 }
