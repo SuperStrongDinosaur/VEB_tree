@@ -109,10 +109,10 @@ private:
             if (t->max < x)
                 std::swap(t->max, x);
             if (k != 1) {
-                if (empty(t->children[high(x)])) {
-                    add_rec(t->aux, high(x));
-                    add_rec(t->children[high(x)], low(x));
-                }
+                //     if (empty(t->children[high(x)])) {
+                add_rec(t->aux, high(x));
+                add_rec(t->children[high(x)], low(x));
+                //     }
             }
         }
     }
@@ -173,7 +173,7 @@ private:
         if (empty(t->aux))
             return t->min;
         else {
-            if (!empty(t->children[high(x)]) && t->children[high(x)]->min > low(x))
+            if (!empty(t->children[high(x)]) && t->children[high(x)]->min < low(x))
                 return merge(high(x), prev_rec(t->children[high(x)], low(x)));
             else  {
                 ull nextHigh = prev_rec(t->aux, high(x));
@@ -187,7 +187,7 @@ private:
 };
 
 int main() {
-    VEBTree<20> tree;
+    VEBTree<10> tree;
     
     for(int i = 1; i < 10; i++) {
         tree.add(i);
