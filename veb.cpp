@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <set>
 #include "veb.h"
 #define ull unsigned long long
 
@@ -16,15 +17,15 @@ template<unsigned int S>
 class VEBTree: AbstractVEBTree<S> {
 private:
     class node {
-        int size;
     public:
+        int size;
         std::shared_ptr<node> aux;
         std::vector<std::shared_ptr<node>> children;
         ull max, min;
         
         node(int size1) : size(size1), max(NO), min(NO) {
             if (size > 2) {
-                int child_size = pow(2, (int)((log2(size)) / 2 + 0.5));
+                int child_size = (1 << (int)ceil(log(size) / (2 * log(2))));
                 aux = std::make_shared<node>(child_size);
                 children.resize(child_size);
                 for(auto& i : children)
@@ -37,19 +38,21 @@ private:
     int k;
     
 public:
-    VEBTree() : k(S){
+    VEBTree() : k(S) {
         root = std::make_shared<node>(pow(2, k));
     }
     
     void add(ull x) {
-        add_rec(root, x);
+        if(!find(x))
+            add_rec(root, x);
     }
     
     void remove(ull x) {
-        remove_rec(root, x);
+        if(find(x))
+            remove_rec(root, x);
     }
     
-    bool find(ull x) {
+    bool find(ull x) const {
         return find_rec(root, x);
     }
     
@@ -71,53 +74,61 @@ public:
     
 private:
     bool empty(std::shared_ptr<node> t) const {
-        return t->min == NO;
+        return !t || t->min == NO;
     }
     
-    ull high(ull key) const {
-        return (key >> (k >> 1));
+    inline int downRoot(int u) const {
+        return (1 << (int)(log(u) / (2 * log(2))));
     }
     
-    ull low(ull key) const {
-        return (key & ((1ull << (k >> 1)) - 1));
+    ull high(std::shared_ptr<node> t, ull key) const {
+        //return (key >> ((t->size + 1) / 2));
+        return key / downRoot(t->size);
     }
     
-    ull merge(ull high, ull low) const {
-        return ((high << (k >> 1)) | low);
+    ull low(std::shared_ptr<node> t, ull key) const {
+        //return key & ((1ull << ((t->size + 1) / 2)) - 1);
+        return key % downRoot(t->size);
     }
     
-    bool find_rec(std::shared_ptr<node> t, ull x) {
+    ull merge(std::shared_ptr<node> t, ull high, ull low) const {
+        //return (high << (((t->size) / 2 + 1))) | low;
+        return high * downRoot(t->size) + low;
+    }
+    
+    bool find_rec(std::shared_ptr<node> t, ull x) const {
         if (empty(t))
             return false;
         if (t->min == x || t->max == x)
             return true;
-        return find_rec(t->children[high(x)], low(x));
+        return find_rec(t->children[high(t, x)], low(t, x));
     }
     
-    void add_rec(std::shared_ptr<node> t, ull x) {
+    void add_rec(std::shared_ptr<node>& t, ull x) {
         if (empty(t)) {
             t->min = x;
             t->max = x;
         } else if (t->min == t->max) {
-            if (t->min < x)
-                t->max = x;
-            else
+            if (t->min > x)
                 t->min = x;
+            else
+                t->max = x;
         } else {
             if (t->min > x)
                 std::swap(t->min, x);
             if (t->max < x)
                 std::swap(t->max, x);
-            if (k != 1) {
-                //     if (empty(t->children[high(x)])) {
-                add_rec(t->aux, high(x));
-                add_rec(t->children[high(x)], low(x));
-                //     }
+            if (t->size > 2) {
+                if(x != merge(t, high(t, x), low(t, x)))
+                    std::cout << "ERROR" << x << " " << high(t, x) << " " << low(t, x) << std::endl;
+                if (empty(t->children[high(t, x)]))
+                    add_rec(t->aux, high(t, x));
+                add_rec(t->children[high(t, x)], low(t, x));
             }
         }
     }
     
-    void remove_rec(std::shared_ptr<node> t, ull x) {
+    void remove_rec(std::shared_ptr<node>& t, ull x) {
         if (t->min == x && t->max == x)  {
             t->min = NO;
             return;
@@ -127,7 +138,7 @@ private:
                 t->min = t->max;
                 return;
             }
-            x = merge(t->aux->min, t->children[t->aux->min]->min);
+            x = merge(t, t->aux->min, t->children[t->aux->min]->min);
             t->min = x;
         }
         if (t->max == x) {
@@ -135,14 +146,14 @@ private:
                 t->max = t->min;
                 return;
             }
-            x = merge(t->aux->max, t->children[t->aux->max]->max);
+            x = merge(t, t->aux->max, t->children[t->aux->max]->max);
             t->max = x;
         }
         if (empty(t->aux))
             return;
-        remove_rec(t->children[high(x)], low(x));
-        if (empty(t->children[high(x)]))
-            remove_rec(t->aux, high(x));
+        remove_rec(t->children[high(t, x)], low(t, x));
+        if (t->children.size() > high(t, x) && empty(t->children[high(t, x)]))
+            remove_rec(t->aux, high(t, x));
     }
     
     ull next_rec(std::shared_ptr<node> t, ull x) const {
@@ -153,14 +164,14 @@ private:
         if (empty(t->aux))
             return t->max;
         else {
-            if (!empty(t->children[high(x)]) && t->children[high(x)]->max > low(x)) {
-                return merge(high(x), next_rec(t->children[high(x)], low(x)));
+            if (!empty(t->children[high(t, x)]) && t->children[high(t, x)]->max > low(t, x)) {
+                return merge(t, high(t, x), next_rec(t->children[high(t, x)], low(t, x)));
             } else {
-                ull nextHigh = next_rec(t->aux, high(x));
+                ull nextHigh = next_rec(t->aux, high(t, x));
                 if (nextHigh == NO)
                     return t->max;
                 else
-                    return merge(nextHigh, t->children[nextHigh]->min);
+                    return merge(t, nextHigh, t->children[nextHigh]->min);
             }
         }
     }
@@ -173,14 +184,14 @@ private:
         if (empty(t->aux))
             return t->min;
         else {
-            if (!empty(t->children[high(x)]) && t->children[high(x)]->min < low(x))
-                return merge(high(x), prev_rec(t->children[high(x)], low(x)));
+            if (!empty(t->children[high(t, x)]) && t->children[high(t, x)]->min < low(t, x))
+                return merge(t, high(t, x), prev_rec(t->children[high(t, x)], low(t, x)));
             else  {
-                ull nextHigh = prev_rec(t->aux, high(x));
+                ull nextHigh = prev_rec(t->aux, high(t, x));
                 if (nextHigh == NO)
                     return t->min;
                 else
-                    return merge(nextHigh, t->children[nextHigh]->max);
+                    return merge(t, nextHigh, t->children[nextHigh]->max);
             }
         }
     }
@@ -189,24 +200,55 @@ private:
 int main() {
     VEBTree<10> tree;
     
-    for(int i = 1; i < 10; i++) {
+    for(int i = 1; i < 500; i++) {
         tree.add(i);
-        std::cout << "added: " << i << " max: " << tree.getMax() << " is added: " << tree.find(i) <<std::endl;
+        // std::cout << "added: " << i << " max: " << tree.getMax() << " is added: ";
+        for(int j = 1; j <= i; j++)
+            if(!tree.find(j))
+                std::cout << j << " " << std::endl;
+        //std::cout << std::endl;
     }
-    for(int i = 1; i < 10; i++) {
-        std::cout << "is exist: " << tree.find(i) << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
+    for(int i = 1; i < 500; i++) {
+        //std::cout << i << " is exist: " << tree.find(i) << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
+        if(!tree.find(i) || tree.prev(i) != i - 1 || tree.next(i) - 1 != i)
+            std::cout << i << " is exist: " << tree.find(i) << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
     }
-    for(int i = 1; i < 10; i++) {
+    for(int i = 1; i < 500; i++) {
         tree.remove(i);
-        std::cout << "removed: " << i << " min: " << tree.getMin() << " is removed: " << tree.find(i) << std::endl;
+        //std::cout << "removed: " << i << " min: " << tree.getMin() << " is removed: " << tree.find(i) << std::endl;
     }
     
-    /* tree.add(5);
-     tree.add(11);
-     tree.add(10);
-     std::cout << tree.next(5) << std::endl;
-     std::cout << tree.prev(11) << std::endl;
-     tree.remove(10);
-     std::cout << tree.next(5) << std::endl;*/
+    tree.add(5);
+    tree.add(11);
+    tree.add(10);
+    std::cout << tree.next(5) << std::endl;
+    std::cout << tree.prev(11) << std::endl;
+    tree.remove(10);
+    std::cout << tree.next(5) << std::endl;
+    VEBTree<20> a;
+    std::set<ull> s;
+    
+    for (int i = 0; i < 1000; i++) {
+        ull x = (rand() * RAND_MAX + rand());
+        x %= 20000;
+        a.add(x);
+        s.insert(x);
+        auto temp = s.find(x);
+        auto curr = temp;
+        auto temp2 = temp;
+        auto next = ++temp;
+        auto prev = --temp2;
+        auto pp = a.prev(x);
+        auto nn = a.next(x);
+        if (curr != s.begin() && a.prev(x) != *prev) {
+            std::cout << x << std::endl;
+        }
+        if (next != s.end() && a.next(x) != *next) {
+            std::cout << x << std::endl;
+        }
+    }
+    
+    std::cout << "OK\n";
+    
     return 0;
 }
