@@ -39,7 +39,7 @@ private:
     
 public:
     VEBTree() : k(S) {
-        root = std::make_shared<node>(pow(2, k));
+        root = std::make_shared<node>(2 << k);
     }
     
     void add(ull x) {
@@ -196,59 +196,3 @@ private:
         }
     }
 };
-
-int main() {
-    VEBTree<10> tree;
-    
-    for(int i = 1; i < 500; i++) {
-        tree.add(i);
-        // std::cout << "added: " << i << " max: " << tree.getMax() << " is added: ";
-        for(int j = 1; j <= i; j++)
-            if(!tree.find(j))
-                std::cout << j << " " << std::endl;
-        //std::cout << std::endl;
-    }
-    for(int i = 1; i < 500; i++) {
-        //std::cout << i << " is exist: " << tree.find(i) << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
-        if(!tree.find(i) || tree.prev(i) != i - 1 || tree.next(i) - 1 != i)
-            std::cout << i << " is exist: " << tree.find(i) << " next: " << tree.next(i) << " prev: " << tree.prev(i) << std::endl;
-    }
-    for(int i = 1; i < 500; i++) {
-        tree.remove(i);
-        //std::cout << "removed: " << i << " min: " << tree.getMin() << " is removed: " << tree.find(i) << std::endl;
-    }
-    
-    tree.add(5);
-    tree.add(11);
-    tree.add(10);
-    std::cout << tree.next(5) << std::endl;
-    std::cout << tree.prev(11) << std::endl;
-    tree.remove(10);
-    std::cout << tree.next(5) << std::endl;
-    VEBTree<20> a;
-    std::set<ull> s;
-    
-    for (int i = 0; i < 1000; i++) {
-        ull x = (rand() * RAND_MAX + rand());
-        x %= 20000;
-        a.add(x);
-        s.insert(x);
-        auto temp = s.find(x);
-        auto curr = temp;
-        auto temp2 = temp;
-        auto next = ++temp;
-        auto prev = --temp2;
-        auto pp = a.prev(x);
-        auto nn = a.next(x);
-        if (curr != s.begin() && a.prev(x) != *prev) {
-            std::cout << x << std::endl;
-        }
-        if (next != s.end() && a.next(x) != *next) {
-            std::cout << x << std::endl;
-        }
-    }
-    
-    std::cout << "OK\n";
-    
-    return 0;
-}
